@@ -49,7 +49,9 @@ SYSTEM_THREAD(ENABLED);
 int puerta(String input);
 int luces(String input);
 void toggleMode();
+void soundBuzzer(int duration);
 
+// RFID configuration
 #define SS_PIN 18  // Define pin for Slave Select (SS)
 #define RST_PIN 19 // Define pin for Reset (RST)
 
@@ -62,17 +64,23 @@ int userCount = 0;           // Counter for number of users
 
 bool isWritingMode = false; // Mode flag: false for reading, true for writing
 
-Servo servo;            // Servo object
-String readUID = "";    // Variable to store read UID
-int temperatura = 0;    // Placeholder for temperature variable
+// Objects
+Servo servo; // Servo object
+
+// Pins to use on Particle Photon 2
+int rele = 0;        // Relay pin
+int servo1 = 1;      // Servo control pin
+int buzzer = 6;      // Buzzer pin
+int boton = 8;       // Button pin for open the door
+int boton2 = 9;      // Button 2 pin for change RFID mode
+int termometro = 11; // Thermometer pin
+int magneto = 12;    // Magnet sensor pin
+
+// Variables
+String readUID = ""; // Variable to store read UID
+// int temperatura = 0;    // Placeholder for temperature variable
 int aperturaPuerta = 0; // Variable for door status
 int encendidoLuces = 0; // Variable for lights status
-int boton = 0;          // Button pin
-int boton2 = 8;         // Button 2 pin
-int magneto = 8;        // Magnet sensor pin
-int rele = 6;           // Relay pin
-int servo1 = 13;        // Servo control pin
-int termometro = 12;    // Thermometer pin
 int servoPosition = 0;  // Variable for servo position
 double lectura = 0;     // Variable for temperature reading
 double voltaje = 0;     // Variable for voltage calculation
@@ -128,6 +136,7 @@ void loop()
       storedUIDs[userCount] = readUID; // Store UID in array
       userCount++;                     // Increment user count
       Serial.println("UID stored!");   // Print stored message
+      soundBuzzer(100);                // Sound to indicate that the UID was stored
     }
     else
     {
@@ -142,6 +151,7 @@ void loop()
       if (storedUIDs[i] == readUID)
       {
         Serial.println("Access granted!"); // Print access granted message
+        soundBuzzer(100);                  // Sound to indicate access granted
         if (servoPosition > 75 && servoPosition < 85)
         {
           puerta("on"); // Open door if within range
@@ -154,6 +164,7 @@ void loop()
       }
     }
     Serial.println("Access denied!"); // Print access denied message
+    soundBuzzer(500);                 // Sound to indicate access denied
   }
 
   // Read temperature from thermometer
@@ -193,10 +204,12 @@ void toggleMode()
   if (isWritingMode)
   {
     Serial.println("Writing mode activated"); // Print writing mode activated
+    soundBuzzer(100);                         // Sound to indicate change of the mode
   }
   else
   {
     Serial.println("Reading mode activated"); // Print reading mode activated
+    soundBuzzer(100);                         // Sound to indicate change of the mode
   }
 }
 
@@ -248,4 +261,11 @@ int luces(String input)
   }
   return -1;   // Return error if input is invalid
   delay(1000); // Wait for 1 second
+}
+
+void soundBuzzer(int duration)
+{
+  digitalWrite(buzzer, HIGH); // Turn on the buzzer
+  delay(duration);            // Hold the buzzer on for a specific duration
+  digitalWrite(buzzer, LOW);  // Turn off the buzzer
 }
