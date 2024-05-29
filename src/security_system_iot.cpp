@@ -89,20 +89,22 @@ double gradosC = 0;     // Variable for temperature in Celsius
 
 void setup()
 {
-  Serial.begin(9600);                                                  // Start serial communication at 9600 baud
-  mfrc522.setSPIConfig();                                              // Set SPI configuration for MFRC522
-  SPI.begin();                                                         // Initialize SPI bus
-  mfrc522.PCD_Init();                                                  // Initialize MFRC522
-  Particle.variable("gradosC", gradosC);                               // Expose gradosC variable to the cloud
-  Particle.variable("aperturaPuerta", aperturaPuerta);                 // Expose aperturaPuerta variable to the cloud
-  Particle.variable("encendidoLuces", encendidoLuces);                 // Expose encendidoLuces variable to the cloud
-  Particle.function("puerta", puerta);                                 // Register puerta function for cloud control
-  Particle.function("luces", luces);                                   // Register luces function for cloud control
-  Particle.syncTime();                                                 // Synchronize time with the cloud
-  Time.zone(-6);                                                       // Set time zone to -6
-  pinMode(boton, INPUT_PULLUP);                                        // Set button pin as input with pull-up
-  pinMode(boton2, INPUT_PULLUP);                                       // Set button 2 pin as input with pull-up
-  pinMode(magneto, INPUT_PULLUP);                                      // Set magnet sensor pin as input with pull-up
+  Serial.begin(9600);                                  // Start serial communication at 9600 baud
+  mfrc522.setSPIConfig();                              // Set SPI configuration for MFRC522
+  SPI.begin();                                         // Initialize SPI bus
+  mfrc522.PCD_Init();                                  // Initialize MFRC522
+  Particle.variable("gradosC", gradosC);               // Expose gradosC variable to the cloud
+  Particle.variable("aperturaPuerta", aperturaPuerta); // Expose aperturaPuerta variable to the cloud
+  Particle.variable("encendidoLuces", encendidoLuces); // Expose encendidoLuces variable to the cloud
+  Particle.function("puerta", puerta);                 // Register puerta function for cloud control
+  Particle.function("luces", luces);                   // Register luces function for cloud control
+  Particle.syncTime();                                 // Synchronize time with the cloud
+  Time.zone(-6);                                       // Set time zone to -6
+  pinMode(boton, INPUT_PULLUP);                        // Set button pin as input with pull-up
+  pinMode(boton2, INPUT_PULLUP);                       // Set button 2 pin as input with pull-up
+  pinMode(magneto, INPUT_PULLUP);
+  pinMode(termometro, INPUT);
+  pinMode(buzzer, OUTPUT);                                             // Set magnet sensor pin as input with pull-up
   pinMode(rele, OUTPUT);                                               // Set relay pin as output
   pinMode(servo1, OUTPUT);                                             // Set servo control pin as output
   servo.attach(servo1);                                                // Attach servo to pin
@@ -204,13 +206,12 @@ void toggleMode()
   if (isWritingMode)
   {
     Serial.println("Writing mode activated"); // Print writing mode activated
-    soundBuzzer(100);                         // Sound to indicate change of the mode
   }
   else
   {
     Serial.println("Reading mode activated"); // Print reading mode activated
-    soundBuzzer(100);                         // Sound to indicate change of the mode
   }
+  soundBuzzer(100); // Sound to indicate change of the mode
 }
 
 int puerta(String input)
