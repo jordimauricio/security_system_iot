@@ -106,6 +106,7 @@ void setup()
 
 void loop()
 {
+  servoPosition = servo.read(); // Read the servo position
   // Check if a new card is present and if it can be read
   if (!mfrc522.PICC_IsNewCardPresent() || !mfrc522.PICC_ReadCardSerial())
   {
@@ -141,8 +142,15 @@ void loop()
       if (storedUIDs[i] == readUID)
       {
         Serial.println("Access granted!"); // Print access granted message
-        puerta("on");                      // Open door
-        return;                            // Exit loop
+        if (servoPosition > 75 && servoPosition < 85)
+        {
+          puerta("on"); // Open door if within range
+        }
+        else if (servoPosition >= 0 && servoPosition <= 5)
+        {
+          puerta("off"); // Close door if within range
+        }
+        return; // Exit loop
       }
     }
     Serial.println("Access denied!"); // Print access denied message
@@ -154,8 +162,7 @@ void loop()
   mvolts = voltaje * 1000;          // Convert to millivolts
   gradosC = mvolts / 10.0;          // Convert to degrees Celsius
 
-  // Read and control servo position
-  servoPosition = servo.read();
+  // Control servo position
   Serial.println(servoPosition);
   if (digitalRead(boton) == LOW)
   {
