@@ -23,13 +23,13 @@
  ----------------------------------------------------------------------------- Nicola Coppola
  * Pin layout should be as follows:
  * Signal     Pin              Pin               Pin        Pin         Pin
- *            Arduino Uno      Arduino Mega      SPARK		  Photon 2    MFRC522 board
+ *            Arduino Uno      Arduino Mega      SPARK		  Photon 2    MFRC522 board   Colors
  * ---------------------------------------------------------------------------
- * Reset      9                5                 ANY (D2)	  D19         RST
- * SPI SS     10               53                ANY (A2)	  D18         SDA
- * SPI MOSI   11               51                A5         D15         MOSI
- * SPI MISO   12               50                A4         D16         MISO
- * SPI SCK    13               52                A3		      D17         SCK
+ * Reset      9                5                 ANY (D2)	  D19         RST             White
+ * SPI SS     10               53                ANY (A2)	  D18         SDA             Purple
+ * SPI MOSI   11               51                A5         D15         MOSI            Green
+ * SPI MISO   12               50                A4         D16         MISO            Brown
+ * SPI SCK    13               52                A3		      D17         SCK             Blue
  *
  * The reader can be found on eBay for around 5 dollars. Search for "mf-rc522" on ebay.com.
  */
@@ -38,6 +38,7 @@
 #include "Particle.h"
 #include "SPI.h"
 #include "MFRC522.h"
+#include "Adafruit_DHT.h"
 
 // Let Device OS manage the connection to the Particle Cloud
 SYSTEM_MODE(AUTOMATIC);
@@ -58,6 +59,12 @@ void soundBuzzer(int duration);
 // Create MFRC522 instance with defined SS and RST pins
 MFRC522 mfrc522(SS_PIN, RST_PIN);
 
+// DHT11 configuration
+#define DHTPIN 11     // what pin we're connected to
+#define DHTTYPE DHT11 // DHT 11
+
+DHT dht(DHTPIN, DHTTYPE);
+
 const int maxUsers = 5;      // Maximum number of users
 String storedUIDs[maxUsers]; // Array to store user UIDs
 int userCount = 0;           // Counter for number of users
@@ -73,7 +80,7 @@ int servo1 = 1;      // Servo control pin
 int buzzer = 6;      // Buzzer pin
 int boton = 8;       // Button pin for open the door
 int boton2 = 9;      // Button 2 pin for change RFID mode
-int termometro = 11; // Thermometer pin
+int termometro = 10; // Thermometer pin
 int magneto = 12;    // Magnet sensor pin
 
 // Variables
@@ -89,7 +96,8 @@ double gradosC = 0;     // Variable for temperature in Celsius
 
 void setup()
 {
-  Serial.begin(9600);                                  // Start serial communication at 9600 baud
+  Serial.begin(9600); // Start serial communication at 9600 baud
+  dht.begin();
   mfrc522.setSPIConfig();                              // Set SPI configuration for MFRC522
   SPI.begin();                                         // Initialize SPI bus
   mfrc522.PCD_Init();                                  // Initialize MFRC522
@@ -116,6 +124,19 @@ void setup()
 
 void loop()
 {
+  delay(3000); // Wait for 3 seconds
+  // Read temperature from thermometer
+  /*lectura = analogRead(termometro);
+  voltaje = (lectura * 3.3) / 4095; // Calculate voltage
+  mvolts = voltaje * 1000;          // Convert to millivolts
+  gradosC = mvolts / 10.0;          // Convert to degrees Celsius
+
+  Serial.println(gradosC);      // Print temperature in Celsius*/
+
+  // Read temperature as Celsius
+  gradosC = dht.getTempCelcius();
+  Serial.println(gradosC);
+
   servoPosition = servo.read(); // Read the servo position
   // Check if a new card is present and if it can be read
   if (!mfrc522.PICC_IsNewCardPresent() || !mfrc522.PICC_ReadCardSerial())
@@ -169,12 +190,6 @@ void loop()
     soundBuzzer(500);                 // Sound to indicate access denied
   }
 
-  // Read temperature from thermometer
-  lectura = analogRead(termometro);
-  voltaje = (lectura * 3.3) / 4095; // Calculate voltage
-  mvolts = voltaje * 1000;          // Convert to millivolts
-  gradosC = mvolts / 10.0;          // Convert to degrees Celsius
-
   // Control servo position
   Serial.println(servoPosition);
   if (digitalRead(boton) == LOW)
@@ -196,8 +211,6 @@ void loop()
   {
     Serial.println("Incorrect value"); // Print error message for incorrect value
   }
-  Serial.println(gradosC); // Print temperature in Celsius
-  delay(1000);             // Wait for 1 second
 }
 
 void toggleMode()
@@ -243,7 +256,7 @@ int puerta(String input)
     return 0;           // Return success
   }
   return -1;   // Return error if input is invalid
-  delay(1000); // Wait for 1 second
+  delay(3000); // Wait for 1 second
 }
 
 int luces(String input)
