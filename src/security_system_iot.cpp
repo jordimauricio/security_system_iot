@@ -124,20 +124,6 @@ void setup()
 
 void loop()
 {
-  delay(3000); // Wait for 3 seconds
-  // Read temperature from thermometer
-  /*lectura = analogRead(termometro);
-  voltaje = (lectura * 3.3) / 4095; // Calculate voltage
-  mvolts = voltaje * 1000;          // Convert to millivolts
-  gradosC = mvolts / 10.0;          // Convert to degrees Celsius
-
-  Serial.println(gradosC);      // Print temperature in Celsius*/
-
-  // Read temperature as Celsius
-  gradosC = dht.getTempCelcius();
-  Serial.println(gradosC);
-
-  servoPosition = servo.read(); // Read the servo position
   // Check if a new card is present and if it can be read
   if (!mfrc522.PICC_IsNewCardPresent() || !mfrc522.PICC_ReadCardSerial())
   {
@@ -190,7 +176,8 @@ void loop()
     soundBuzzer(500);                 // Sound to indicate access denied
   }
 
-  // Control servo position
+  // Read and control servo position
+  servoPosition = servo.read();
   Serial.println(servoPosition);
   if (digitalRead(boton) == LOW)
   {
