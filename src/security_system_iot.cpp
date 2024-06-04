@@ -23,13 +23,13 @@
  ----------------------------------------------------------------------------- Nicola Coppola
  * Pin layout should be as follows:
  * Signal     Pin              Pin               Pin        Pin         Pin
- *            Arduino Uno      Arduino Mega      SPARK		  Photon 2    MFRC522 board
+ *            Arduino Uno      Arduino Mega      SPARK		  Photon 2    MFRC522 board   Colors
  * ---------------------------------------------------------------------------
- * Reset      9                5                 ANY (D2)	  D19         RST
- * SPI SS     10               53                ANY (A2)	  D18         SDA
- * SPI MOSI   11               51                A5         D15         MOSI
- * SPI MISO   12               50                A4         D16         MISO
- * SPI SCK    13               52                A3		      D17         SCK
+ * Reset      9                5                 ANY (D2)	  D19         RST             White
+ * SPI SS     10               53                ANY (A2)	  D18         SDA             Purple
+ * SPI MOSI   11               51                A5         D15         MOSI            Green
+ * SPI MISO   12               50                A4         D16         MISO            Brown
+ * SPI SCK    13               52                A3		      D17         SCK             Blue
  *
  * The reader can be found on eBay for around 5 dollars. Search for "mf-rc522" on ebay.com.
  */
@@ -62,22 +62,18 @@ int userCount = 0;           // Counter for number of users
 
 bool isWritingMode = false; // Mode flag: false for reading, true for writing
 
-Servo servo;            // Servo object
-String readUID = "";    // Variable to store read UID
-int temperatura = 0;    // Placeholder for temperature variable
-int aperturaPuerta = 0; // Variable for door status
-int encendidoLuces = 0; // Variable for lights status
-int boton = 0;          // Button pin
-int boton2 = 8;         // Button 2 pin
-int magneto = 8;        // Magnet sensor pin
-int rele = 6;           // Relay pin
-int servo1 = 13;        // Servo control pin
-int termometro = 12;    // Thermometer pin
-int servoPosition = 0;  // Variable for servo position
-double lectura = 0;     // Variable for temperature reading
-double voltaje = 0;     // Variable for voltage calculation
-double mvolts = 0;      // Variable for millivolts calculation
-double gradosC = 0;     // Variable for temperature in Celsius
+Servo servo;                // Servo object
+String readUID = "";        // Variable to store read UID
+int temperatura = 0;        // Placeholder for temperature variable
+int aperturaPuerta = 0;     // Variable for door status
+int encendidoLuces = 0;     // Variable for lights status
+int boton = 8;              // Button pin
+int boton2 = 9;             // Button 2 pin
+int magneto = 12;           // Magnet sensor pin
+int rele = 0;               // Relay pin
+int servo1 = 1;             // Servo control pin
+int servoInitPosition = 85; // Variable for servo initial position
+int servoPosition = 0;      // Variable for servo position
 
 void setup()
 {
@@ -85,7 +81,6 @@ void setup()
   mfrc522.setSPIConfig();                                              // Set SPI configuration for MFRC522
   SPI.begin();                                                         // Initialize SPI bus
   mfrc522.PCD_Init();                                                  // Initialize MFRC522
-  Particle.variable("gradosC", gradosC);                               // Expose gradosC variable to the cloud
   Particle.variable("aperturaPuerta", aperturaPuerta);                 // Expose aperturaPuerta variable to the cloud
   Particle.variable("encendidoLuces", encendidoLuces);                 // Expose encendidoLuces variable to the cloud
   Particle.function("puerta", puerta);                                 // Register puerta function for cloud control
@@ -98,14 +93,36 @@ void setup()
   pinMode(rele, OUTPUT);                                               // Set relay pin as output
   pinMode(servo1, OUTPUT);                                             // Set servo control pin as output
   servo.attach(servo1);                                                // Attach servo to pin
-  servo.write(79);                                                     // Set initial servo position
+  servo.write(servoInitPosition);                                      // Set initial servo position
   attachInterrupt(digitalPinToInterrupt(boton2), toggleMode, FALLING); // Attach interrupt to button 2 to toggle mode
-  Serial.println("Ready to scan cards...");                            // Print ready message
   delay(1000);                                                         // Wait for 1 second
 }
 
 void loop()
 {
+  // Read and control servo position
+  servoPosition = servo.read();
+  Serial.println(servoPosition);
+  delay(1000);
+  if (digitalRead(boton) == LOW)
+  {
+    if (servoPosition > 75 && servoPosition < 90)
+    {
+      puerta("on"); // Open door if within range
+    }
+    else if (servoPosition >= 0 && servoPosition <= 5)
+    {
+      puerta("off"); // Close door if within range
+    }
+  }
+  else if (digitalRead(boton) == HIGH)
+  {
+    Serial.println("HIGH"); // Print high message if button is high
+  }
+  else
+  {
+    Serial.println("Incorrect value"); // Print error message for incorrect value
+  }
   // Check if a new card is present and if it can be read
   if (!mfrc522.PICC_IsNewCardPresent() || !mfrc522.PICC_ReadCardSerial())
   {
@@ -147,37 +164,7 @@ void loop()
     }
     Serial.println("Access denied!"); // Print access denied message
   }
-
-  // Read temperature from thermometer
-  lectura = analogRead(termometro);
-  voltaje = (lectura * 3.3) / 4095; // Calculate voltage
-  mvolts = voltaje * 1000;          // Convert to millivolts
-  gradosC = mvolts / 10.0;          // Convert to degrees Celsius
-
-  // Read and control servo position
-  servoPosition = servo.read();
-  Serial.println(servoPosition);
-  if (digitalRead(boton) == LOW)
-  {
-    if (servoPosition > 75 && servoPosition < 85)
-    {
-      puerta("on"); // Open door if within range
-    }
-    else if (servoPosition >= 0 && servoPosition <= 5)
-    {
-      puerta("off"); // Close door if within range
-    }
-  }
-  else if (digitalRead(boton) == HIGH)
-  {
-    Serial.println("HIGH"); // Print high message if button is high
-  }
-  else
-  {
-    Serial.println("Incorrect value"); // Print error message for incorrect value
-  }
-  Serial.println(gradosC); // Print temperature in Celsius
-  delay(1000);             // Wait for 1 second
+  delay(1000); // Waiting time
 }
 
 void toggleMode()
@@ -198,7 +185,7 @@ int puerta(String input)
   if (input == "on")
   {
     Serial.println("Opening"); // Print opening message
-    for (int pos = 79; pos > 0; pos--)
+    for (int pos = servoInitPosition; pos > 0; pos--)
     {
       servo.write(pos); // Move servo to open position
       delay(20);        // Wait 20 milliseconds
@@ -211,7 +198,7 @@ int puerta(String input)
   else if (input == "off")
   {
     Serial.println("Closing"); // Print closing message
-    for (int pos = 0; pos < 79; pos++)
+    for (int pos = 0; pos < servoInitPosition; pos++)
     {
       servo.write(pos); // Move servo to closed position
       delay(20);        // Wait 20 milliseconds
