@@ -45,10 +45,11 @@ SYSTEM_MODE(AUTOMATIC);
 // Run the application and system concurrently in separate threads
 SYSTEM_THREAD(ENABLED);
 
-// Declaraciones de funciones
-int puerta(String input);
-int luces(String input);
-void toggleMode();
+// Declarations of functions
+int puerta(String input); // Function to open and close the door
+int luces(String input);  // Function to turn the lights ON/OFF
+void toggleMode();        // Function to change between RFID modes read/write
+void slowOpening();       // Function to open and close de door slowly
 
 #define SS_PIN 18  // Define pin for Slave Select (SS)
 #define RST_PIN 19 // Define pin for Reset (RST)
@@ -56,7 +57,7 @@ void toggleMode();
 // Create MFRC522 instance with defined SS and RST pins
 MFRC522 mfrc522(SS_PIN, RST_PIN);
 
-const int maxUsers = 5;      // Maximum number of users
+const int maxUsers = 5;      // Maximum number of users that can be stored
 String storedUIDs[maxUsers]; // Array to store user UIDs
 int userCount = 0;           // Counter for number of users
 
@@ -67,8 +68,8 @@ String readUID = "";        // Variable to store read UID
 int temperatura = 0;        // Placeholder for temperature variable
 int aperturaPuerta = 0;     // Variable for door status
 int encendidoLuces = 0;     // Variable for lights status
-int boton = 8;              // Button pin
-int boton2 = 9;             // Button 2 pin
+int boton = 9;              // Button to open and close door
+int boton2 = 8;             // Button to change write/read mode
 int magneto = 12;           // Magnet sensor pin
 int rele = 0;               // Relay pin
 int servo1 = 1;             // Servo control pin
@@ -106,14 +107,7 @@ void loop()
   delay(1000);
   if (digitalRead(boton) == LOW)
   {
-    if (servoPosition > 75 && servoPosition < 90)
-    {
-      puerta("on"); // Open door if within range
-    }
-    else if (servoPosition >= 0 && servoPosition <= 5)
-    {
-      puerta("off"); // Close door if within range
-    }
+    slowOpening();
   }
   else if (digitalRead(boton) == HIGH)
   {
@@ -158,18 +152,7 @@ void loop()
       if (storedUIDs[i] == readUID)
       {
         Serial.println("Access granted!"); // Print access granted message
-        if (servoPosition > 75 && servoPosition < 90)
-        {
-          puerta("on"); // Open door if within range
-        }
-        else if (servoPosition >= 0 && servoPosition <= 5)
-        {
-          puerta("off"); // Close door if within range
-        }
-        else
-        {
-          Serial.print("");
-        }
+        slowOpening();
         return; // Exit loop
       }
     }
@@ -239,4 +222,20 @@ int luces(String input)
   }
   return -1;   // Return error if input is invalid
   delay(1000); // Wait for 1 second
+}
+
+void slowOpening()
+{
+  if (servoPosition > 75 && servoPosition < 90)
+  {
+    puerta("on"); // Open door if within range
+  }
+  else if (servoPosition >= 0 && servoPosition <= 5)
+  {
+    puerta("off"); // Close door if within range
+  }
+  else
+  {
+    Serial.print("");
+  }
 }
