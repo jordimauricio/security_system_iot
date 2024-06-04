@@ -103,19 +103,11 @@ void loop()
 {
   // Read and control servo position
   servoPosition = servo.read();
-  Serial.println(servoPosition);
+  // Serial.println(servoPosition);
   delay(1000);
   if (digitalRead(boton) == LOW)
   {
     slowOpening();
-  }
-  else if (digitalRead(boton) == HIGH)
-  {
-    Serial.println("HIGH"); // Print high message if button is high
-  }
-  else
-  {
-    Serial.println("Incorrect value"); // Print error message for incorrect value
   }
   // Check if a new card is present and if it can be read
   if (!mfrc522.PICC_IsNewCardPresent() || !mfrc522.PICC_ReadCardSerial())
@@ -128,7 +120,7 @@ void loop()
   {
     readUID += String(mfrc522.uid.uidByte[i], HEX); // Append each byte of UID to readUID
   }
-  Serial.println("Card UID: " + readUID); // Print card UID
+  // Serial.println("Card UID: " + readUID); // Print card UID
 
   if (isWritingMode)
   {
@@ -137,7 +129,7 @@ void loop()
     {
       storedUIDs[userCount] = readUID; // Store UID in array
       userCount++;                     // Increment user count
-      Serial.println("UID stored!");   // Print stored message
+      // Serial.println("UID stored!");   // Print stored message
     }
     else
     {
@@ -151,12 +143,12 @@ void loop()
     {
       if (storedUIDs[i] == readUID)
       {
-        Serial.println("Access granted!"); // Print access granted message
+        // Serial.println("Access granted!"); // Print access granted message
         slowOpening();
         return; // Exit loop
       }
     }
-    Serial.println("Access denied!"); // Print access denied message
+    // Serial.println("Access denied!"); // Print access denied message
   }
   delay(1000); // Waiting time
 }
@@ -178,7 +170,7 @@ int puerta(String input)
 {
   if (input == "on")
   {
-    Serial.println("Opening"); // Print opening message
+    // Serial.println("Opening"); // Print opening message
     for (int pos = servoInitPosition; pos > 0; pos--)
     {
       servo.write(pos); // Move servo to open position
@@ -191,7 +183,7 @@ int puerta(String input)
   }
   else if (input == "off")
   {
-    Serial.println("Closing"); // Print closing message
+    // Serial.println("Closing"); // Print closing message
     for (int pos = 0; pos < servoInitPosition; pos++)
     {
       servo.write(pos); // Move servo to closed position
