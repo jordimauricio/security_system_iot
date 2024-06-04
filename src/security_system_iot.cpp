@@ -158,8 +158,19 @@ void loop()
       if (storedUIDs[i] == readUID)
       {
         Serial.println("Access granted!"); // Print access granted message
-        puerta("on");                      // Open door
-        return;                            // Exit loop
+        if (servoPosition > 75 && servoPosition < 90)
+        {
+          puerta("on"); // Open door if within range
+        }
+        else if (servoPosition >= 0 && servoPosition <= 5)
+        {
+          puerta("off"); // Close door if within range
+        }
+        else
+        {
+          Serial.print("");
+        }
+        return; // Exit loop
       }
     }
     Serial.println("Access denied!"); // Print access denied message
