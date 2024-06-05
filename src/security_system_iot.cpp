@@ -46,10 +46,11 @@ SYSTEM_MODE(AUTOMATIC);
 SYSTEM_THREAD(ENABLED);
 
 // Declarations of functions
-int puerta(String input); // Function to open and close the door
-int luces(String input);  // Function to turn the lights ON/OFF
-void toggleMode();        // Function to change between RFID modes read/write
-void slowOpening();       // Function to open and close de door slowly
+int puerta(String input);       // Function to open and close the door
+int luces(String input);        // Function to turn the lights ON/OFF
+void toggleMode();              // Function to change between RFID modes read/write
+void slowOpening();             // Function to open and close de door slowly
+void buzzerSound(int duration); // Function to make sound for a specific time
 
 #define SS_PIN 18  // Define pin for Slave Select (SS)
 #define RST_PIN 19 // Define pin for Reset (RST)
@@ -71,56 +72,87 @@ int encendidoLuces = 0;     // Variable for lights status
 int boton = 9;              // Button to open and close door
 int boton2 = 8;             // Button to change write/read mode
 int magneto = 12;           // Magnet sensor pin
+int buzzer = 13;            // Buzzer pin
 int rele = 0;               // Relay pin
 int servo1 = 1;             // Servo control pin
 int servoInitPosition = 85; // Variable for servo initial position
 int servoPosition = 0;      // Variable for servo position
 
+unsigned long servoZeroTime = 0;              // Variable to store the time when servo is at position 0
+const unsigned long minTimeForBuzzer = 30000; // half minute in milliseconds
+
 void setup()
 {
-  Serial.begin(9600);                                                  // Start serial communication at 9600 baud
-  mfrc522.setSPIConfig();                                              // Set SPI configuration for MFRC522
-  SPI.begin();                                                         // Initialize SPI bus
-  mfrc522.PCD_Init();                                                  // Initialize MFRC522
-  Particle.variable("aperturaPuerta", aperturaPuerta);                 // Expose aperturaPuerta variable to the cloud
-  Particle.variable("encendidoLuces", encendidoLuces);                 // Expose encendidoLuces variable to the cloud
-  Particle.function("puerta", puerta);                                 // Register puerta function for cloud control
-  Particle.function("luces", luces);                                   // Register luces function for cloud control
-  Particle.syncTime();                                                 // Synchronize time with the cloud
-  Time.zone(-6);                                                       // Set time zone to -6
-  pinMode(boton, INPUT_PULLUP);                                        // Set button pin as input with pull-up
-  pinMode(boton2, INPUT_PULLUP);                                       // Set button 2 pin as input with pull-up
-  pinMode(magneto, INPUT_PULLUP);                                      // Set magnet sensor pin as input with pull-up
-  pinMode(rele, OUTPUT);                                               // Set relay pin as output
-  pinMode(servo1, OUTPUT);                                             // Set servo control pin as output
-  servo.attach(servo1);                                                // Attach servo to pin
-  servo.write(servoInitPosition);                                      // Set initial servo position
-  attachInterrupt(digitalPinToInterrupt(boton2), toggleMode, FALLING); // Attach interrupt to button 2 to toggle mode
-  delay(1000);                                                         // Wait for 1 second
+  Serial.begin(9600);                                  // Start serial communication at 9600 baud
+  mfrc522.setSPIConfig();                              // Set SPI configuration for MFRC522
+  SPI.begin();                                         // Initialize SPI bus
+  mfrc522.PCD_Init();                                  // Initialize MFRC522
+  Particle.variable("aperturaPuerta", aperturaPuerta); // Expose aperturaPuerta variable to the cloud
+  Particle.variable("encendidoLuces", encendidoLuces); // Expose encendidoLuces variable to the cloud
+  Particle.function("puerta", puerta);                 // Register puerta function for cloud control
+  Particle.function("luces", luces);                   // Register luces function for cloud control
+  Particle.syncTime();                                 // Synchronize time with the cloud
+  Time.zone(-6);                                       // Set time zone to -6
+  pinMode(boton, INPUT_PULLUP);                        // Set button pin as input with pull-up
+  pinMode(boton2, INPUT_PULLUP);                       // Set button 2 pin as input with pull-up
+  pinMode(magneto, INPUT_PULLUP);                      // Set magnet sensor pin as input with pull-up
+  pinMode(rele, OUTPUT);                               // Set relay pin as output
+  pinMode(servo1, OUTPUT);                             // Set servo control pin as output
+  pinMode(buzzer, OUTPUT);                             // Set buzzer pin as output
+  servo.attach(servo1);                                // Attach servo to pin
+  servo.write(servoInitPosition);                      // Set initial servo position
+  delay(1000);                                         // Wait for 1 second
 }
 
 void loop()
 {
+  delay(1000); // Waiting time
   // Read and control servo position
   servoPosition = servo.read();
   // Serial.println(servoPosition);
-  delay(1000);
+  if (servoPosition == 0)
+  {
+    if (servoZeroTime == 0)
+    {
+      servoZeroTime = millis(); // Start counting time when servo is at position 0
+    }
+    unsigned long elapsedTime = millis() - servoZeroTime;
+    if (elapsedTime > minTimeForBuzzer)
+    {
+      // Execute buzzer sequence
+      buzzerSound(500); // Example: 500ms buzzer sound
+      delay(1000);      // Wait for 1 second before checking again
+    }
+  }
+  else
+  {
+    servoZeroTime = 0; // Reset the timer when servo is not at position 0
+  }
+
   if (digitalRead(boton) == LOW)
   {
     slowOpening();
   }
+
+  if (digitalRead(boton2) == LOW)
+  {
+    toggleMode();
+    buzzerSound(300);
+  }
+
   // Check if a new card is present and if it can be read
   if (!mfrc522.PICC_IsNewCardPresent() || !mfrc522.PICC_ReadCardSerial())
   {
     return; // Exit loop if no new card or read fails
   }
+
   readUID = ""; // Restore de variable to empty
   //  Read card UID
   for (byte i = 0; i < mfrc522.uid.size; i++)
   {
     readUID += String(mfrc522.uid.uidByte[i], HEX); // Append each byte of UID to readUID
   }
-  // Serial.println("Card UID: " + readUID); // Print card UID
+  Serial.println("Card UID: " + readUID); // Print card UID
 
   if (isWritingMode)
   {
@@ -129,7 +161,8 @@ void loop()
     {
       storedUIDs[userCount] = readUID; // Store UID in array
       userCount++;                     // Increment user count
-      // Serial.println("UID stored!");   // Print stored message
+      Serial.println("UID stored!");   // Print stored message
+      buzzerSound(100);
     }
     else
     {
@@ -143,14 +176,14 @@ void loop()
     {
       if (storedUIDs[i] == readUID)
       {
-        // Serial.println("Access granted!"); // Print access granted message
+        Serial.println("Access granted!"); // Print access granted message
         slowOpening();
         return; // Exit loop
       }
     }
-    // Serial.println("Access denied!"); // Print access denied message
+    Serial.println("Access denied!"); // Print access denied message
+    buzzerSound(1000);
   }
-  delay(1000); // Waiting time
 }
 
 void toggleMode()
@@ -230,4 +263,11 @@ void slowOpening()
   {
     Serial.print("");
   }
+}
+
+void buzzerSound(int duration)
+{
+  digitalWrite(buzzer, HIGH); // Turn on the buzzer
+  delay(duration);            // Hold the buzzer on for a specific duration
+  digitalWrite(buzzer, LOW);  // Turn off the buzzer
 }
